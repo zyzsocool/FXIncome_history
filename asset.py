@@ -27,9 +27,13 @@ class asset():
 
 
 class asset_bond(asset):
-    def __init__(self, code, ctype, initialdate, enddate, facevalue, couponrate, assementdate, curve, frequency):
+    def __init__(self, code, ctype, initialdate, enddate, facevalue, couponrate, assementdate, curve, frequency,cleanprice=None):
         super().__init__(code, ctype, initialdate, enddate, facevalue, couponrate, assementdate, curve)
         self.frequency=frequency
+        self.cleanprice=cleanprice
+        self.realR=None
+        self.initial_assementdate=assementdate
+
     def ytm(self):
         maturity=(self.enddate-self.assementdate).days
         if maturity<0:
@@ -108,12 +112,136 @@ class asset_bond(asset):
                         cash_flow_deflated[i]=value
                         pv+=value
                         days += 1
+
         return [pv,cash_flow_deflated]
+    def cleanprice_func(self,facetype=None):
+        if facetype:
+            facevalue=1
+        else:
+            facevalue=self.facevalue
+        if self.ctype == '附息':
+            pv=self.pv(facetype=facetype)[0]
+            datelist = sorted(self.cashflow().keys())
+            if datelist:
+
+                firstdate = datelist[0]
+                period = 12 / self.frequency
+                lastdate = firstdate - relativedelta(months=period)
+                dayall=(firstdate-lastdate).days
+                daycount=(self.assementdate-lastdate).days
+                interest=daycount/dayall*self.couponrate/self.frequency
+                cleanprice=pv-interest*facevalue
+            else:
+                cleanprice=0
+        return cleanprice
+
     def dv01(self):
         pvdown=self.pv(-0.00005)[0]
 
         pvup=self.pv(0.00005)[0]
         return pvup-pvdown
+    def realdailyR(self):
+        if self.ctype == '附息':
+            datelist=sorted(self.cashflow().keys())
+
+            firstdate = datelist[0]
+            period = 12 / self.frequency
+            lastdate = firstdate - relativedelta(months=period)
+            datelist.insert(0,lastdate)
+
+
+
+
+
+            realR_up=0.2/365
+            realR_down=0
+
+            while True:
+                date = self.initial_assementdate
+                cleanprice = self.cleanprice
+                realR=(realR_up+realR_down)/2
+                i=1
+                yearday=(datelist[1]-datelist[0]).days
+                while (date-datelist[-1]).days<0:
+                    if (date-datelist[i]).days>=0 :
+                        yearday=(datelist[i+1]-datelist[i]).days
+                        i+=1
+
+
+                    cleanprice=cleanprice*(1+realR)-self.couponrate/yearday*100
+
+                    date+=relativedelta(days=1)
+
+
+                if cleanprice-100>0:
+                    realR_up=realR
+                else:
+                    realR_down=realR
+
+                if abs(cleanprice-100)<0.00000000001:
+                    break
+
+        self.realR=realR
+        return realR
+    def cleanprice_interestgain(self, facetype=None):#算的是当天日初折溢摊净价，也是昨日日终折溢摊净价
+
+        if self.realR:
+            realR=self.realR
+        else:
+            realR=self.realdailyR()
+
+        if self.ctype=='附息':
+
+            assementdate = self.assementdate
+            date = self.initial_assementdate
+            self.change(newdate=date)
+
+            datelist = sorted(self.cashflow().keys())
+            self.change(newdate=assementdate)
+            firstdate = datelist[0]
+            period = 12 / self.frequency
+            lastdate = firstdate - relativedelta(months=period)
+            datelist.insert(0, lastdate)
+
+            assementdate=self.assementdate
+            date=self.initial_assementdate
+            cleanprice=self.cleanprice
+            yearday=(datelist[1]-datelist[0]).days
+            i=1
+            interestgain = 0
+            while (assementdate-date).days>0 and (self.enddate-date).days>0:
+                if (date-datelist[i]).days==0:
+                    yearday = (datelist[i+1] - datelist[i]).days
+                    i+=1
+                interestgain += cleanprice * realR
+                cleanprice=cleanprice*(1+realR)-self.couponrate/self.frequency/yearday*100
+                date+=relativedelta(days=1)
+
+
+        if (assementdate-self.enddate).days>0:
+            cleanprice=0
+        if facetype:
+            cleanprice = cleanprice / 100
+            interestgain = interestgain / 100
+
+        else:
+            cleanprice = cleanprice * self.facevalue / 100
+            interestgain = interestgain * self.facevalue / 100
+
+
+        return [cleanprice,interestgain]
+    def cleanprice_fill(self):
+        cleanprice=self.cleanprice_func()
+        self.cleanprice=cleanprice
+
+
+
+
+
+
+
+
+
 
 
 
