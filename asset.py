@@ -168,9 +168,10 @@ class asset_bond(asset):
                         i+=1
 
 
-                    cleanprice=cleanprice*(1+realR)-self.couponrate/yearday*100
+                    cleanprice=cleanprice*(1+realR)-self.couponrate/yearday*100/self.frequency
 
                     date+=relativedelta(days=1)
+
 
 
                 if cleanprice-100>0:
@@ -178,7 +179,7 @@ class asset_bond(asset):
                 else:
                     realR_down=realR
 
-                if abs(cleanprice-100)<0.00000000001:
+                if abs(cleanprice-100)<0.000000001:
                     break
 
         self.realR=realR
@@ -231,7 +232,7 @@ class asset_bond(asset):
 
         return [cleanprice,interestgain]
     def cleanprice_fill(self):
-        cleanprice=self.cleanprice_func()
+        cleanprice=self.cleanprice_func(1)*100
         self.cleanprice=cleanprice
 
 
