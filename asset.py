@@ -26,7 +26,7 @@ class asset():
 
 
 
-class asset_bond(asset):
+class Bond(asset):
     def __init__(self, code, ctype, initialdate, enddate, facevalue, couponrate, assementdate, curve, frequency,cleanprice=None):
         super().__init__(code, ctype, initialdate, enddate, facevalue, couponrate, assementdate, curve)
         self.frequency=frequency
@@ -250,6 +250,6 @@ class asset_bond(asset):
 
 
 
-class asset_irs(asset):
+class Irs(asset):
     def __init__(self, code, ctype, initialdate, enddate, facevalue, couponrate, assementdate, curve):
         super().__init__(code, ctype, initialdate, enddate, facevalue, couponrate, assementdate, curve)
