@@ -1,30 +1,14 @@
-from enum import Enum
-import datetime
+import FXIncome
+exceladdress='C:\\Users\\zyzse\\Desktop\\模板.xlsx'
+[assetlist,hdplist]=FXIncome.reading_excel(exceladdress)
+myprofilo=FXIncome.Profolio(assetlist,hdplist)
 
 
-class CouponType(Enum):
-    DISCOUNT = '贴现'
-    COUPON = '附息'
-    LAST = '到期一次还本付息'
-
-    @staticmethod
-    def from_str(label):
-        if label in ('贴现'):
-            return CouponType.DISCOUNT
-        elif label in ('附息'):
-            return CouponType.COUPON
-        elif label in ('到期一次还本付息'):
-            return CouponType.LAST
-        else:
-            raise NotImplementedError
-
-
-text = '到期一次还本付息'
-ct = CouponType.from_str(text)
-print(ct.value)
-if ct is CouponType.LAST:
-    print('at last')
-else:
-    print('my god')
-
-
+#1.tpl算法
+myprofilo.bsforcast_tpl()
+#2.tpl蒙特卡洛算法（画图，不输入数字就默认模拟1000次）
+myprofilo.bsforcast_tpl_plot()
+#3.oci算法
+myprofilo.bsforcast_oci()
+#4.oci蒙特卡洛算法（画图，要算很久，不输入数字就默认模拟1000次）
+myprofilo.bsforcast_oci_plot(100)
