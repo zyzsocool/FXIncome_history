@@ -237,7 +237,7 @@ def hdpput_excel(exceladdress)
 
 ```python
 import FXIncome
-exceladdress='C:\\Users\\zyzse\\Desktop\\模板.xlsx'
+exceladdress='C:\\Users\\zyzse\\Desktop\\模板.xlsx'#找到计算表的模板
 
 [assetlist,hdplist]=FXIncome.reading_excel(exceladdress)#读取excel信息并获得assetlist和hdplist
 myprofilo=FXIncome.Profolio(assetlist,hdplist)#形成一个Profolio
@@ -253,7 +253,13 @@ myprofilo.bsforcast_oci()
 myprofilo.bsforcast_oci_plot(100)
 ```
 
+OCI_PLOT结果展示
 
+![image-20200710172806351](C:\Users\zyzse\AppData\Roaming\Typora\typora-user-images\image-20200710172806351.png)
+
+TPL_PLOT结果展示
+
+![微信图片_20200710173043](C:\Users\zyzse\Desktop\微信图片_20200710173043.png)
 
 #### 原始bpforcast_tpl使用案例
 
