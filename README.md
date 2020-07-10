@@ -233,7 +233,29 @@ def hdpput_excel(exceladdress)
 
 ### 4.代码使用案例
 
-#### bpforcast_tpl使用案例
+#### 从excel录入使用案例
+
+```python
+import FXIncome
+exceladdress='C:\\Users\\zyzse\\Desktop\\模板.xlsx'
+
+[assetlist,hdplist]=FXIncome.reading_excel(exceladdress)#读取excel信息并获得assetlist和hdplist
+myprofilo=FXIncome.Profolio(assetlist,hdplist)#形成一个Profolio
+
+
+#1.tpl算法
+myprofilo.bsforcast_tpl()
+#2.tpl蒙特卡洛算法（画图，不输入数字就默认模拟1000次）
+myprofilo.bsforcast_tpl_plot()
+#3.oci算法
+myprofilo.bsforcast_oci()
+#4.oci蒙特卡洛算法（画图，要算很久，不输入数字就默认模拟1000次）
+myprofilo.bsforcast_oci_plot(100)
+```
+
+
+
+#### 原始bpforcast_tpl使用案例
 
 这个案例很长很臃肿，实际上主要在信息输入部分，这个后面通过assetpu模块的完善可以一步处理。
 
@@ -309,7 +331,7 @@ a=myprofilo.bsforcast_tpl()
 myprofilo.bsforcast_plot()
 ```
 
-#### bpforcast_oci使用案例
+#### 原始bpforcast_oci使用案例
 
 与bpforcast_tpl类似，主要区别是这里买入债券会以新的债券编码独立记一个asset，方便会计核算。值得一提的是，这个例子里面的oci债券包含了很多未实现的浮动盈亏，所以一卖就能实现很多价差收益
 
