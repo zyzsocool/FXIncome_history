@@ -1,8 +1,9 @@
+from fxincome import *
 from random import gauss
 import copy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import FXIncome
+
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 
@@ -20,7 +21,7 @@ class Hdp():
         return curvemo0
 
 
-class Profolio():
+class Portfolio():
     def __init__(self, assetlist, hdplist):
         self.asset_initial = copy.deepcopy(assetlist)
         self.asset_deal = copy.deepcopy(assetlist)
@@ -299,7 +300,7 @@ class Profolio():
                         assementdate = hdp.date
                         curve = newcurve
                         frequency = asset.frequency
-                        assetappend = FXIncome.Bond(
+                        assetappend = Bond(
                             code,
                             ctype,
                             initialdate,
@@ -318,7 +319,7 @@ class Profolio():
                         asset_cashflow0 = assetappend.cashflow()
 
                         facevalue = 0
-                        assetappend2 = FXIncome.Bond(
+                        assetappend2 = Bond(
                             code,
                             ctype,
                             initialdate,

@@ -1,13 +1,11 @@
 #这个模块用来写从excel或者数据库输入资产与利率数据的函数
+
+import fxincome.portfolio
 import openpyxl
 import datetime
-import FXIncome
+
 def reading_excel(exceladdress):
     wb=openpyxl.load_workbook(exceladdress, data_only=True)
-
-
-
-
 
     ws=wb['hdp']
     hdplist=[]
@@ -41,7 +39,7 @@ def reading_excel(exceladdress):
                 '10Y': i[22].value,
                 '20Y': i[23].value,
                 '30Y': i[24].value}
-            hdptem=FXIncome.Hdp(date,curve_mu,{},curve_flc)
+            hdptem = fxincome.Hdp(date, curve_mu, {}, curve_flc)
             hdplist.append(hdptem)
     assementdate=hdplist[0].date
     curve=hdplist[0].curve_mu
@@ -74,7 +72,7 @@ def reading_excel(exceladdress):
             couponrate = i[6].value / 100
             frequency = i[8].value
             cleanprice = i[2].value
-            asset = FXIncome.Bond(
+            asset = fxincome.Bond(
                 code,
                 ctype,
                 initialdate,
