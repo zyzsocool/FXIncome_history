@@ -23,11 +23,11 @@ class asset():
     def __init__（self，……）
         self.code=code
         self.ctype=ctype
-        self.initialdate=initialdate
-        self.enddate=enddate
-        self.facevalue=facevalue
-        self.couponrate=couponrate
-        self.assementdate=assementdate
+        self.initial_date=initialdate
+        self.end_date=enddate
+        self.face_value=facevalue
+        self.coupon_rate=couponrate
+        self.assement_date=assementdate
         self.curve=curve
     def cashflow(self):
     def pv(self):

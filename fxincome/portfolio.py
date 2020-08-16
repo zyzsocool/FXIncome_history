@@ -4,10 +4,12 @@ import copy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 
-class Hdp():
+
+class Hdp:
     def __init__(self, date, curve_mu, buysell, curve_flc={}):
         self.date = date
         self.curve_mu = curve_mu
@@ -21,7 +23,7 @@ class Hdp():
         return curvemo0
 
 
-class Portfolio():
+class Portfolio:
     def __init__(self, assetlist, hdplist):
         self.asset_initial = copy.deepcopy(assetlist)
         self.asset_deal = copy.deepcopy(assetlist)
@@ -59,9 +61,9 @@ class Portfolio():
 
                     asset_cashflow0 = asset.cashflow()
                     asset.change(newdate=newdate, newcurve=newcurve)
-                    asset_pv1 = asset.pv(facetype=1)[0]
+                    asset_pv1 = asset.pv(face_type=1)[0]
                     cash = -asset_pv1 * hdp.buysell[asset.code]
-                    asset.change(facevaluedelta=hdp.buysell[asset.code])
+                    asset.change(face_value_delta=hdp.buysell[asset.code])
                     if hdp.date in cashflow_his_deal.keys():
                         cashflow_his_deal[hdp.date] += cash
                     else:
@@ -86,7 +88,7 @@ class Portfolio():
                 # print('pv（中间过程测试用，103行）',asset.pv()[0])
 
                 for i, j in asset.pv()[1].items():
-                    if i != asset.assementdate:
+                    if i != asset.assement_date:
                         if i in cashflow_for_deal:
                             cashflow_for_deal[i] += j
                         else:
@@ -103,7 +105,7 @@ class Portfolio():
                 asset0.change(newdate=newdate, newcurve=newcurve)
                 asset_cashflow1 = asset0.pv()[1]
                 for i, j in asset_cashflow1.items():
-                    if i != asset.assementdate:
+                    if i != asset.assement_date:
                         if i in cashflow_for_notdeal.keys():
                             cashflow_for_notdeal[i] += j
                         else:
@@ -141,7 +143,7 @@ class Portfolio():
                     pv_end_notdeal -
                     cash_end_notdeal)
             result = {}
-            result['enddate'] = hdp.date
+            result['end_date'] = hdp.date
             result['pv_begin'] = pv_begin
             result['cashflow_his_deal'] = cashflow_his_deal
             result['cash_end_deal'] = cash_end_deal
@@ -173,8 +175,8 @@ class Portfolio():
 
             lastdate = hdp.date
             for m in self.asset_deal:
-                if m.facevalue != 0 and (m.enddate - lastdate).days > 0:
-                    print(m.code, m.facevalue)
+                if m.face_value != 0 and (m.end_date - lastdate).days > 0:
+                    print(m.code, m.face_value)
         return resultall
 
     def bsforcast_tpl_plot(self, num=1000):
@@ -182,9 +184,8 @@ class Portfolio():
         result = self.bsforcast_tpl()[-1]
         deal_profit = []
         notdeal_profit = []
-        div=[]
+        div = []
         for i in tqdm(range(0, num)):
-
             resultx = self.bsforcast_tpl(1)[-1]
             deal_profit.append(
                 resultx['cash_end_deal'] +
@@ -196,14 +197,13 @@ class Portfolio():
                 resultx['pv_begin'])
             div.append(
                 resultx['cash_end_deal'] +
-                resultx['pv_end_deal']-
-                resultx['cash_end_notdeal']-
+                resultx['pv_end_deal'] -
+                resultx['cash_end_notdeal'] -
                 resultx['pv_end_notdeal'])
 
-
         figure = plt.figure(1)
-        date0=self.hdp[0].date.strftime('%Y%m%d')
-        date1=self.hdp[-1].date.strftime('%Y%m%d')
+        date0 = self.hdp[0].date.strftime('%Y%m%d')
+        date1 = self.hdp[-1].date.strftime('%Y%m%d')
         figure.suptitle('TPL持有期收益测试[%s--%s]（实验次数：%d）' % (date0, date1, num))
 
         ax1 = plt.subplot(1, 2, 1)
@@ -211,14 +211,13 @@ class Portfolio():
 
         plt.sca(ax1)
 
-
-        a=int((result['cash_end_deal'] +result['pv_end_deal'] -result['pv_begin'])/10000)
+        a = int((result['cash_end_deal'] + result['pv_end_deal'] - result['pv_begin']) / 10000)
         b = int((result['cash_end_notdeal'] + result['pv_end_notdeal'] - result['pv_begin']) / 10000)
 
         plt.hist(deal_profit, histtype='stepfilled', alpha=0.3, density=1,
-                 bins=200,label='操作（均值:'+str(a)+'万元）')
+                 bins=200, label='操作（均值:' + str(a) + '万元）')
         plt.hist(notdeal_profit, histtype='stepfilled', alpha=0.3, density=1,
-                 bins=200,label='不操作（均值:'+str(b)+'万元）')
+                 bins=200, label='不操作（均值:' + str(b) + '万元）')
         plt.xlabel('损益(元)')
         plt.title('损益相对频率图')
 
@@ -228,9 +227,7 @@ class Portfolio():
         plt.sca(ax2)
 
         plt.hist(div, histtype='stepfilled', alpha=0.3, density=1,
-                 bins=200, color='green',label='操作与不操作之差（均值:' + str(a-b) + '万元）')
-
-
+                 bins=200, color='green', label='操作与不操作之差（均值:' + str(a - b) + '万元）')
 
         plt.legend(loc=1)
         plt.xlabel('损益差(元)')
@@ -293,10 +290,10 @@ class Portfolio():
                                 break
 
                         ctype = asset.ctype
-                        initialdate = asset.initialdate
-                        enddate = asset.enddate
+                        initialdate = asset.initial_date
+                        enddate = asset.end_date
                         facevalue = hdp.buysell[asset.code]
-                        couponrate = asset.couponrate
+                        couponrate = asset.coupon_rate
                         assementdate = hdp.date
                         curve = newcurve
                         frequency = asset.frequency
@@ -314,7 +311,7 @@ class Portfolio():
 
                         self.asset_deal.append(assetappend)
 
-                        asset_pv1 = assetappend.pv(facetype=1)[0]
+                        asset_pv1 = assetappend.pv(face_type=1)[0]
                         cash = -asset_pv1 * hdp.buysell[asset.code]
                         asset_cashflow0 = assetappend.cashflow()
 
@@ -360,8 +357,8 @@ class Portfolio():
                         k = 0
 
                         while sellvol < 0:
-                            if sellvol + asset_in.facevalue <= 0:
-                                sellvol_in = -asset_in.facevalue
+                            if sellvol + asset_in.face_value <= 0:
+                                sellvol_in = -asset_in.face_value
                                 sellvol -= sellvol_in
                             else:
                                 sellvol_in = sellvol
@@ -369,7 +366,7 @@ class Portfolio():
 
                             asset_cashflow0 = asset_in.cashflow()
                             asset_in.change(newdate=newdate, newcurve=newcurve)
-                            asset_pv1 = asset_in.pv(facetype=1)[0]
+                            asset_pv1 = asset_in.pv(face_type=1)[0]
                             cash = -asset_pv1 * sellvol_in
 
                             cleanprice_market0 = asset_in.cleanprice_func()
@@ -378,7 +375,7 @@ class Portfolio():
                             interestgain_deal += asset_in.cleanprice_interestgain()[
                                 1]
 
-                            asset_in.change(facevaluedelta=sellvol_in)
+                            asset_in.change(face_value_delta=sellvol_in)
 
                             cleanprice_market1 = asset_in.cleanprice_func()
                             cleanprice_def1 = asset_in.cleanprice_interestgain()[
@@ -386,7 +383,7 @@ class Portfolio():
                             interestgain_deal_div += asset_in.cleanprice_interestgain()[
                                 1]
                             pricegain = (cleanprice_market0 - cleanprice_def0) - \
-                                (cleanprice_market1 - cleanprice_def1)
+                                        (cleanprice_market1 - cleanprice_def1)
                             pricegain_deal += pricegain
                             floatinggain_deal += (cleanprice_market1 -
                                                   cleanprice_def1)
@@ -429,7 +426,7 @@ class Portfolio():
                     pv_final += asset.pv()[0]
 
                 for i, j in asset.pv()[1].items():
-                    if i != asset.assementdate:
+                    if i != asset.assement_date:
                         if i in cashflow_for_deal:
                             cashflow_for_deal[i] += j
                         else:
@@ -445,7 +442,7 @@ class Portfolio():
                 asset0.change(newdate=newdate, newcurve=newcurve)
                 asset_cashflow1 = asset0.pv()[1]
                 for i, j in asset_cashflow1.items():
-                    if i != asset.assementdate:
+                    if i != asset.assement_date:
                         if i in cashflow_for_notdeal.keys():
                             cashflow_for_notdeal[i] += j
                         else:
@@ -505,7 +502,7 @@ class Portfolio():
                        floatinggain_notdeal +
                        interestgain_notdeal))
             result = {}
-            result['enddate'] = hdp.date
+            result['end_date'] = hdp.date
             result['pv_begin'] = pv_begin
             result['cashflow_his_deal'] = cashflow_his_deal
             result['cash_end_deal'] = cash_end_deal
@@ -549,34 +546,33 @@ class Portfolio():
 
             lastdate = hdp.date
             for m in self.asset_deal:
-                if m.facevalue != 0 and (m.enddate - lastdate).days > 0:
-                    print(m.code, m.facevalue)
+                if m.face_value != 0 and (m.end_date - lastdate).days > 0:
+                    print(m.code, m.face_value)
         return resultall
-    def bsforcast_oci_plot(self, num=1000):
 
+    def bsforcast_oci_plot(self, num=1000):
 
         result = self.bsforcast_oci()[-1]
         deal_profit = []
-        deal_interest=[]
-        deal_price_floating=[]
+        deal_interest = []
+        deal_price_floating = []
 
         notdeal_profit = []
-        notdeal_interest=[]
-        notdeal_price_floating=[]
+        notdeal_interest = []
+        notdeal_price_floating = []
 
-        div_profit=[]
-        div_interest=[]
-        div_price_floating=[]
+        div_profit = []
+        div_interest = []
+        div_price_floating = []
         for i in tqdm(range(0, num)):
-
             resultx = self.bsforcast_oci(1)[-1]
             deal_profit.append(
-                resultx['pricegain_deal']+
-                resultx['floatinggain_deal']+
+                resultx['pricegain_deal'] +
+                resultx['floatinggain_deal'] +
                 resultx['interestgain_deal'])
             deal_interest.append(resultx['interestgain_deal'])
             deal_price_floating.append(
-                resultx['pricegain_deal']+
+                resultx['pricegain_deal'] +
                 resultx['floatinggain_deal'])
 
             notdeal_profit.append(
@@ -588,18 +584,13 @@ class Portfolio():
                 resultx['pricegain_notdeal'] +
                 resultx['floatinggain_notdeal'])
 
-            div_profit.append(deal_profit[-1]-notdeal_profit[-1])
-            div_interest.append(deal_interest[-1]-notdeal_interest[-1])
-            div_price_floating.append(deal_price_floating[-1]-notdeal_price_floating[-1])
-
-
-
-
-
+            div_profit.append(deal_profit[-1] - notdeal_profit[-1])
+            div_interest.append(deal_interest[-1] - notdeal_interest[-1])
+            div_price_floating.append(deal_price_floating[-1] - notdeal_price_floating[-1])
 
         figure = plt.figure(1)
-        date0=self.hdp[0].date.strftime('%Y%m%d')
-        date1=self.hdp[-1].date.strftime('%Y%m%d')
+        date0 = self.hdp[0].date.strftime('%Y%m%d')
+        date1 = self.hdp[-1].date.strftime('%Y%m%d')
         figure.suptitle('OCI持有期收益测试[%s--%s]（实验次数：%d）' % (date0, date1, num))
 
         ax1 = plt.subplot(2, 3, 1)
@@ -617,22 +608,19 @@ class Portfolio():
         # plt.hist(notdeal_interest, histtype='stepfilled', alpha=0.3, density=1,
         #           bins=200, label='不操作（固定值:' + str(b) + '万元）')
 
-
         plt.xlabel('损益(元)[不操作（固定值:' + str(b) + '万元）]')
         plt.title('利息收入相对频率图')
         plt.ylabel('相对频率')
         plt.legend(loc=1)
 
-
         plt.sca(ax4)
-        c=a-b
+        c = a - b
         plt.hist(div_interest, histtype='stepfilled', alpha=0.3, density=1,
-                 bins=200, color='g',label='操作与不操作差（均值:' + str(c) + '万元）')
+                 bins=200, color='g', label='操作与不操作差（均值:' + str(c) + '万元）')
         plt.xlabel('损益(元)')
         plt.title('利息收入差相对频率图')
         plt.ylabel('相对频率')
         plt.legend(loc=1)
-
 
         plt.sca(ax2)
         a = int((result['pricegain_deal'] + result['floatinggain_deal']) / 10000)
@@ -655,10 +643,9 @@ class Portfolio():
         plt.ylabel('相对频率')
         plt.legend(loc=1)
 
-
         plt.sca(ax3)
-        a = int((result['pricegain_deal'] + result['floatinggain_deal']+result['interestgain_deal']) / 10000)
-        b = int((result['pricegain_notdeal'] + result['floatinggain_notdeal']+result['interestgain_notdeal']) / 10000)
+        a = int((result['pricegain_deal'] + result['floatinggain_deal'] + result['interestgain_deal']) / 10000)
+        b = int((result['pricegain_notdeal'] + result['floatinggain_notdeal'] + result['interestgain_notdeal']) / 10000)
         plt.hist(deal_profit, histtype='stepfilled', alpha=0.3, density=1,
                  bins=200, label='操作（均值:' + str(a) + '万元）')
         plt.hist(notdeal_profit, histtype='stepfilled', alpha=0.3, density=1,
@@ -669,8 +656,6 @@ class Portfolio():
         plt.ylabel('相对频率')
         plt.legend(loc=1)
 
-
-
         plt.sca(ax6)
         c = a - b
         plt.hist(div_profit, histtype='stepfilled', alpha=0.3, density=1,
@@ -679,7 +664,6 @@ class Portfolio():
         plt.title('损益总计差相对频率图')
         plt.ylabel('相对频率')
         plt.legend(loc=1)
-
 
         plt.show()
 
