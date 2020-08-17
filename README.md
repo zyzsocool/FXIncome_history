@@ -23,11 +23,11 @@ class asset():
     def __init__（self，……）
         self.code=code
         self.ctype=ctype
-        self.initialdate=initialdate
-        self.enddate=enddate
-        self.facevalue=facevalue
-        self.couponrate=couponrate
-        self.assementdate=assementdate
+        self.initial_date=initialdate
+        self.end_date=enddate
+        self.face_value=facevalue
+        self.coupon_rate=couponrate
+        self.assement_date=assementdate
         self.curve=curve
     def cashflow(self):
     def pv(self):
@@ -240,7 +240,7 @@ import FXIncome
 exceladdress='C:\\Users\\zyzse\\Desktop\\模板.xlsx'#找到计算表的模板
 
 [assetlist,hdplist]=FXIncome.reading_excel(exceladdress)#读取excel信息并获得assetlist和hdplist
-myprofilo=FXIncome.Profolio(assetlist,hdplist)#形成一个Profolio
+myprofilo=FXIncome.Portfolio(assetlist,hdplist)#形成一个Profolio
 
 
 #1.tpl算法
