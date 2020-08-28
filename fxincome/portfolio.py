@@ -42,7 +42,7 @@ class Portfolio:
         pv_end_notdeal = 0
         # 计算初始价值
         for asset in self.asset_deal:
-            pv_begin += asset.pv()[0]
+            pv_begin += asset.pv_individual()[0]
 
         for hdp in self.hdp:
             cashflow_for_deal = {}
@@ -59,9 +59,9 @@ class Portfolio:
                 # 计算交易操作的结果（deal）
                 if asset.code in hdp.buysell.keys():
 
-                    asset_cashflow0 = asset.cashflow()
+                    asset_cashflow0 = asset.cashflow_individual()
                     asset.change(newdate=newdate, newcurve=newcurve)
-                    asset_pv1 = asset.pv(face_type=1)[0]
+                    asset_pv1 = asset.pv()[0]
                     cash = -asset_pv1 * hdp.buysell[asset.code]
                     asset.change(face_value_delta=hdp.buysell[asset.code])
                     if hdp.date in cashflow_his_deal.keys():
@@ -75,7 +75,7 @@ class Portfolio:
                             else:
                                 cashflow_his_deal[i] = j
                 else:
-                    asset_cashflow0 = asset.cashflow()
+                    asset_cashflow0 = asset.cashflow_individual()
                     for i, j in asset_cashflow0.items():
                         if (i - hdp.date).days <= 0:
                             if i in cashflow_his_deal.keys():
@@ -83,11 +83,11 @@ class Portfolio:
                             else:
                                 cashflow_his_deal[i] = j
                     asset.change(newdate=newdate, newcurve=newcurve)
-                    pv_final += asset.pv()[0]
+                    pv_final += asset.pv_individual()[0]
                 # print('ytm（中间过程测试用，102行）:',asset.ytm())
                 # print('pv（中间过程测试用，103行）',asset.pv()[0])
 
-                for i, j in asset.pv()[1].items():
+                for i, j in asset.pv_individual()[1].items():
                     if i != asset.assement_date:
                         if i in cashflow_for_deal:
                             cashflow_for_deal[i] += j
@@ -95,7 +95,7 @@ class Portfolio:
                             cashflow_for_deal[i] = j
 
                 # 计算不交易操作的结果（notdeal）
-                asset_cashflow0 = asset0.cashflow()
+                asset_cashflow0 = asset0.cashflow_individual()
                 for i, j in asset_cashflow0.items():
                     if (i - newdate).days <= 0:
                         if i in cashflow_his_notdeal.keys():
@@ -103,7 +103,7 @@ class Portfolio:
                         else:
                             cashflow_his_notdeal[i] = j
                 asset0.change(newdate=newdate, newcurve=newcurve)
-                asset_cashflow1 = asset0.pv()[1]
+                asset_cashflow1 = asset0.pv_individual()[1]
                 for i, j in asset_cashflow1.items():
                     if i != asset.assement_date:
                         if i in cashflow_for_notdeal.keys():
@@ -111,7 +111,7 @@ class Portfolio:
                         else:
                             cashflow_for_notdeal[i] = j
 
-                pv_end_notdeal += asset0.pv()[0]
+                pv_end_notdeal += asset0.pv_individual()[0]
 
             cash_end_deal = sum(cashflow_his_deal.values())
             pv_end_deal = sum(cashflow_for_deal.values())
@@ -254,7 +254,7 @@ class Portfolio:
         pv_end_notdeal = 0
         # 计算初始价值
         for asset in self.asset_deal:
-            pv_begin += asset.pv()[0]
+            pv_begin += asset.pv_individual()[0]
 
         for hdp in self.hdp:
             cashflow_for_deal = {}
@@ -311,9 +311,9 @@ class Portfolio:
 
                         self.asset_deal.append(assetappend)
 
-                        asset_pv1 = assetappend.pv(face_type=1)[0]
+                        asset_pv1 = assetappend.pv()[0]
                         cash = -asset_pv1 * hdp.buysell[asset.code]
-                        asset_cashflow0 = assetappend.cashflow()
+                        asset_cashflow0 = assetappend.cashflow_individual()
 
                         facevalue = 0
                         assetappend2 = Bond(
@@ -331,16 +331,16 @@ class Portfolio:
 
                         asset.change(newdate=newdate, newcurve=newcurve)
 
-                        cleanprice_market1 = asset.cleanprice_func()
-                        cleanprice_def1 = asset.cleanprice_interestgain()[0]
+                        cleanprice_market1 = asset.cleanprice_func_individual()
+                        cleanprice_def1 = asset.cleanprice_interestgain_individual()[0]
                         floatinggain_deal += (cleanprice_market1 -
                                               cleanprice_def1)
 
-                        interestgain_deal += asset.cleanprice_interestgain()[1]
-                        interestgain_deal_div += asset.cleanprice_interestgain()[
+                        interestgain_deal += asset.cleanprice_interestgain_individual()[1]
+                        interestgain_deal_div += asset.cleanprice_interestgain_individual()[
                             1]
 
-                        pv_final += asset.pv()[0]
+                        pv_final += asset.pv_individual()[0]
                         if hdp.date in cashflow_his_deal.keys():
                             cashflow_his_deal[hdp.date] += cash
                         else:
@@ -364,23 +364,23 @@ class Portfolio:
                                 sellvol_in = sellvol
                                 sellvol = 0
 
-                            asset_cashflow0 = asset_in.cashflow()
+                            asset_cashflow0 = asset_in.cashflow_individual()
                             asset_in.change(newdate=newdate, newcurve=newcurve)
-                            asset_pv1 = asset_in.pv(face_type=1)[0]
+                            asset_pv1 = asset_in.pv()[0]
                             cash = -asset_pv1 * sellvol_in
 
-                            cleanprice_market0 = asset_in.cleanprice_func()
-                            cleanprice_def0 = asset_in.cleanprice_interestgain()[
+                            cleanprice_market0 = asset_in.cleanprice_func_individual()
+                            cleanprice_def0 = asset_in.cleanprice_interestgain_individual()[
                                 0]
-                            interestgain_deal += asset_in.cleanprice_interestgain()[
+                            interestgain_deal += asset_in.cleanprice_interestgain_individual()[
                                 1]
 
                             asset_in.change(face_value_delta=sellvol_in)
 
-                            cleanprice_market1 = asset_in.cleanprice_func()
-                            cleanprice_def1 = asset_in.cleanprice_interestgain()[
+                            cleanprice_market1 = asset_in.cleanprice_func_individual()
+                            cleanprice_def1 = asset_in.cleanprice_interestgain_individual()[
                                 0]
-                            interestgain_deal_div += asset_in.cleanprice_interestgain()[
+                            interestgain_deal_div += asset_in.cleanprice_interestgain_individual()[
                                 1]
                             pricegain = (cleanprice_market0 - cleanprice_def0) - \
                                         (cleanprice_market1 - cleanprice_def1)
@@ -407,7 +407,7 @@ class Portfolio:
                                         cashflow_his_deal[i] = j
 
                 elif asset.code not in dontlist:
-                    asset_cashflow0 = asset.cashflow()
+                    asset_cashflow0 = asset.cashflow_individual()
                     for i, j in asset_cashflow0.items():
                         if (i - hdp.date).days <= 0:
                             if i in cashflow_his_deal.keys():
@@ -416,23 +416,23 @@ class Portfolio:
                                 cashflow_his_deal[i] = j
                     asset.change(newdate=newdate, newcurve=newcurve)
 
-                    cleanprice_market1 = asset.cleanprice_func()
-                    cleanprice_def1 = asset.cleanprice_interestgain()[0]
+                    cleanprice_market1 = asset.cleanprice_func_individual()
+                    cleanprice_def1 = asset.cleanprice_interestgain_individual()[0]
                     floatinggain_deal += (cleanprice_market1 - cleanprice_def1)
 
-                    interestgain_deal += asset.cleanprice_interestgain()[1]
-                    interestgain_deal_div += asset.cleanprice_interestgain()[1]
+                    interestgain_deal += asset.cleanprice_interestgain_individual()[1]
+                    interestgain_deal_div += asset.cleanprice_interestgain_individual()[1]
 
-                    pv_final += asset.pv()[0]
+                    pv_final += asset.pv_individual()[0]
 
-                for i, j in asset.pv()[1].items():
+                for i, j in asset.pv_individual()[1].items():
                     if i != asset.assement_date:
                         if i in cashflow_for_deal:
                             cashflow_for_deal[i] += j
                         else:
                             cashflow_for_deal[i] = j
                 # 计算不交易操作的结果（notdeal）
-                asset_cashflow0 = asset0.cashflow()
+                asset_cashflow0 = asset0.cashflow_individual()
                 for i, j in asset_cashflow0.items():
                     if (i - newdate).days <= 0:
                         if i in cashflow_his_notdeal.keys():
@@ -440,20 +440,20 @@ class Portfolio:
                         else:
                             cashflow_his_notdeal[i] = j
                 asset0.change(newdate=newdate, newcurve=newcurve)
-                asset_cashflow1 = asset0.pv()[1]
+                asset_cashflow1 = asset0.pv_individual()[1]
                 for i, j in asset_cashflow1.items():
                     if i != asset.assement_date:
                         if i in cashflow_for_notdeal.keys():
                             cashflow_for_notdeal[i] += j
                         else:
                             cashflow_for_notdeal[i] = j
-                cleanprice_market1 = asset0.cleanprice_func()
-                cleanprice_def1 = asset0.cleanprice_interestgain()[0]
-                interestgain_notdeal += asset0.cleanprice_interestgain()[1]
+                cleanprice_market1 = asset0.cleanprice_func_individual()
+                cleanprice_def1 = asset0.cleanprice_interestgain_individual()[0]
+                interestgain_notdeal += asset0.cleanprice_interestgain_individual()[1]
 
                 floatinggain_notdeal += cleanprice_market1 - cleanprice_def1
 
-                pv_end_notdeal += asset0.pv()[0]
+                pv_end_notdeal += asset0.pv_individual()[0]
 
             cash_end_deal = sum(cashflow_his_deal.values())
             pv_end_deal = sum(cashflow_for_deal.values())
