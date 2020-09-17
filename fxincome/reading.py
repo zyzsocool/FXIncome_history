@@ -41,12 +41,13 @@ def reading_excel(exceladdress):
                 '30Y': i[24].value}
             hdptem = fxincome.Hdp(date, curve_mu, {}, curve_flc)
             hdplist.append(hdptem)
-    assementdate=hdplist[0].date
+    assessment_date=hdplist[0].date
     curve=hdplist[0].curve_mu
 
 
     ws=wb['asset']
-    assetlist=[]
+
+    positionlist=[]
     for i in ws.rows:
         if i[0].value=='债券代码':
             k=9
@@ -64,33 +65,36 @@ def reading_excel(exceladdress):
         else:
             code = i[3].value
             ctype = i[7].value
-            initialdate = datetime.datetime.strptime(
+            initial_date = datetime.datetime.strptime(
                 i[4].value.replace('-', ''), '%Y%m%d')
-            enddate = datetime.datetime.strptime(
+            end_date = datetime.datetime.strptime(
                 i[5].value.replace('-', ''), '%Y%m%d')
-            facevalue = i[1].value
-            couponrate = i[6].value / 100
+            face_value = i[1].value
+            coupon_rate = i[6].value / 100
             frequency = i[8].value
             cleanprice = i[2].value
             asset = fxincome.Bond(
                 code,
                 ctype,
-                initialdate,
-                enddate,
-                facevalue,
-                couponrate,
-                assementdate,
+                initial_date,
+                end_date,
+                coupon_rate,
+                frequency)
+
+            position=fxincome.Position_Bond(
+                asset,
+                face_value,
+                assessment_date,
                 curve,
-                frequency,
                 cleanprice)
-            assetlist.append(asset)
+            positionlist.append(position)
             for ii in range(0,times):
                 if i[ii+9].value:
                     buyselldic[buyselllist[ii]][code]=i[ii+9].value
                     ii+=1
     for j in hdplist:
         j.buysell=buyselldic[j.date]
-    return [assetlist,hdplist]
+    return [positionlist,hdplist]
 
 def reading_sql():
     pass
