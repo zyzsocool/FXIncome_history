@@ -24,7 +24,7 @@ class Position():
     def dv01(self):
         pass
 
-class Position_Bond(Position):
+class PositionBond(Position):
 
     def __init__(self, asset, face_value, assessment_date, curve,cleanprice=None):
         super().__init__(asset, face_value, assessment_date, curve)

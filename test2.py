@@ -42,8 +42,8 @@ curve = {
     '20Y': 0.032858,
     '30Y': 0.034564}
 #1.2.2定义position及positisonlist
-position1=fxincome.Position_Bond(bond1,face_value,assessment_date,curve)
-position2=fxincome.Position_Bond(bond2,face_value,assessment_date,curve)
+position1=fxincome.PositionBond(bond1, face_value, assessment_date, curve)
+position2=fxincome.PositionBond(bond2, face_value, assessment_date, curve)
 positionlist=[position1,position2]
 #1.3定义hdp
 #1.3.1定义hdp的信息准备

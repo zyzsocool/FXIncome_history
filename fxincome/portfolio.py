@@ -1,4 +1,5 @@
-from fxincome import *
+from fxincome.position import *
+from fxincome.asset import *
 from random import gauss
 import copy
 from tqdm import tqdm
@@ -377,7 +378,7 @@ class Portfolio:
                             enddate,
                             couponrate,
                             frequency)
-                        positionappend=Position_Bond(assetappend,face_value, assessment_date, curve)
+                        positionappend=PositionBond(assetappend, face_value, assessment_date, curve)
                         self.position_deal.append(positionappend)
 
                         position_pv1 = positionappend.asset.pv(positionappend.assessment_date,positionappend.curve)[0]
@@ -393,7 +394,7 @@ class Portfolio:
                             enddate,
                             couponrate,
                             frequency)
-                        positionappend2 = Position_Bond(assetappend2, face_value, assessment_date, curve)
+                        positionappend2 = PositionBond(assetappend2, face_value, assessment_date, curve)
                         self.position_notdeal.append(positionappend2)
 
                         position.change(newdate=newdate, newcurve=newcurve)

@@ -1,6 +1,7 @@
 #这个模块用来写从excel或者数据库输入资产与利率数据的函数
 
 import fxincome.portfolio
+from fxincome.position import PositionBond
 import openpyxl
 import datetime
 
@@ -81,7 +82,7 @@ def reading_excel(exceladdress):
                 coupon_rate,
                 frequency)
 
-            position=fxincome.Position_Bond(
+            position = PositionBond(
                 asset,
                 face_value,
                 assessment_date,
