@@ -95,27 +95,31 @@ class Bond(Asset):
         face_value = 1
         cash_flow = {}
         if self.ctype == COUPON_TYPE.REGULAR:
+            cash_flow_all={}
             date = self.initial_date
             coupon = self.coupon_rate / self.frequency * face_value
             period = 12 / self.frequency
+            date += relativedelta(months=period)
             while (date - self.end_date).days < 10:
-                if (date - assessment_date).days >= 0:
-                    cash_flow[date] = coupon
+                cash_flow_all[date] = coupon
                 date += relativedelta(months=period)
             date -= relativedelta(months=period)
-            if cash_flow:
-                cash_flow[date] += face_value
+            cash_flow_all[date] += face_value
+            for i,j in cash_flow_all.items():
+                if (i- assessment_date).days >= 0:
+                    cash_flow[i]=cash_flow_all[i]
+
         elif self.ctype == COUPON_TYPE.ZERO:
-            cash_flow[self.end_date] = face_value
+            if (self.end_date-assessment_date)>=0:
+                cash_flow[self.end_date] = face_value
         return cash_flow
 
     def pv(self, assessment_date, curve, ytm_change=0):
         cash_flow = self.cashflow(assessment_date)
+        ytm = (self.ytm(assessment_date, curve) + ytm_change) / self.frequency
+        cash_flow_deflated = {}
+        pv = 0
         if self.ctype == COUPON_TYPE.REGULAR:
-            ytm = (self.ytm(assessment_date, curve) + ytm_change) / self.frequency
-            cash_flow_deflated = {}
-
-            pv = 0
             if cash_flow:
                 firstdate = min(cash_flow.keys())
                 period = 12 / self.frequency
@@ -135,6 +139,21 @@ class Bond(Asset):
                         cash_flow_deflated[i] = value
                         pv += value
                         days += 1
+        elif self.ctype == COUPON_TYPE.ZERO:
+            if cash_flow:
+                cashdate=list(cash_flow.keys())[0]
+                maxday =(cashdate-assessment_date).days
+                days=maxday/365
+                if maxday>=365:
+                    value=list(cash_flow.values())[0] / (1 + ytm) ** days
+
+                else:
+                    value = list(cash_flow.values())[0] / (1 + ytm*days)
+                cash_flow_deflated[cashdate] = value
+                pv=value
+
+
+
 
         return [pv, cash_flow_deflated]
 
