@@ -1,44 +1,67 @@
+# coding=utf-8
 import datetime
 from dateutil.relativedelta import relativedelta
+from fxincome.const import COUPON_TYPE
 
 
 class Asset:
+    """
+    Args:
+        code(str): ID of the asset
+        ctype(Enum): 付息或贴息
+        initial_date(datetime):起息日
+        end_date(datetime):到期日
+        coupon_rate(float):票面利息
+    """
+
     def __init__(self, code, ctype, initial_date, end_date, coupon_rate):
         self.code = code
         self.ctype = ctype
         self.initial_date = initial_date
         self.end_date = end_date
-        #self.face_value = face_value
+        # self.face_value = face_value
         self.coupon_rate = coupon_rate
-        #self.assessment_date = assessment_date
-        #self.curve = curve
+        # self.assessment_date = assessment_date
+        # self.curve = curve
 
-    def cashflow(self,assessment_date):
+    def cashflow(self, assessment_date):
         pass
 
-    def pv(self,assessment_date,curve, ytm_change=0):
+    def pv(self, assessment_date, curve, ytm_change=0):
         pass
 
-    def dv01(self,assessment_date,curve):
+    def dv01(self, assessment_date, curve):
         pass
 
-    def change(self, newdate=None, newcurve=None, face_value_delta=None):
-        if newdate:
-            self.assessment_date = newdate
-        if newcurve:
-            self.curve = newcurve
-        if face_value_delta:
-            self.face_value += face_value_delta
+    # def change(self, newdate=None, newcurve=None, face_value_delta=None):
+    #     if newdate:
+    #         self.assessment_date = newdate
+    #     if newcurve:
+    #         self.curve = newcurve
+    #     if face_value_delta:
+    #         self.face_value += face_value_delta
 
 
 class Bond(Asset):
+    """
+    Args:
+        frequency(int):付息频率，每年X次
+    """
+
     def __init__(self, code, ctype, initial_date, end_date, coupon_rate, frequency):
         super().__init__(code, ctype, initial_date, end_date, coupon_rate)
         self.frequency = frequency
-        self.realR = None
 
+    def ytm(self, assessment_date, curve):
+        """
 
-    def ytm(self,assessment_date,curve):
+        Args:
+            assessment_date(datetime):评估日
+            curve(dict):收益率曲线，Key关键期限包括 0，3M,6M, 9M, 1Y, 2Y, 3Y, 5Y, 10Y, 20Y, 30Y
+                                  Value是对应的收益率， float
+        Returns:
+            插值后的收益率，float
+        """
         maturity = (self.end_date - assessment_date).days
         if maturity < 0:
             ytm = curve['0']
@@ -67,10 +90,11 @@ class Bond(Asset):
         else:
             ytm = None
         return ytm
-    def cashflow(self,assessment_date):
+
+    def cashflow(self, assessment_date):
         face_value = 1
         cash_flow = {}
-        if self.ctype == '附息':
+        if self.ctype == COUPON_TYPE.REGULAR:
             date = self.initial_date
             coupon = self.coupon_rate / self.frequency * face_value
             period = 12 / self.frequency
@@ -81,13 +105,14 @@ class Bond(Asset):
             date -= relativedelta(months=period)
             if cash_flow:
                 cash_flow[date] += face_value
-        elif self.ctype == '贴现':
+        elif self.ctype == COUPON_TYPE.ZERO:
             cash_flow[self.end_date] = face_value
         return cash_flow
-    def pv(self,assessment_date,curve, ytm_change=0):
+
+    def pv(self, assessment_date, curve, ytm_change=0):
         cash_flow = self.cashflow(assessment_date)
-        if self.ctype == '附息':
-            ytm = (self.ytm(assessment_date,curve) + ytm_change) / self.frequency
+        if self.ctype == COUPON_TYPE.REGULAR:
+            ytm = (self.ytm(assessment_date, curve) + ytm_change) / self.frequency
             cash_flow_deflated = {}
 
             pv = 0
@@ -112,11 +137,12 @@ class Bond(Asset):
                         days += 1
 
         return [pv, cash_flow_deflated]
-    def cleanprice_func(self,assessment_date,curve):
+
+    def cleanprice_func(self, assessment_date, curve):
 
         facevalue = 1
-        if self.ctype == '附息':
-            pv = self.pv(assessment_date,curve)[0]
+        if self.ctype == COUPON_TYPE.REGULAR:
+            pv = self.pv(assessment_date, curve)[0]
             datelist = sorted(self.cashflow(assessment_date).keys())
             if datelist:
 
@@ -130,23 +156,14 @@ class Bond(Asset):
             else:
                 cleanprice = 0
         return cleanprice
-    def dv01(self,assessment_date,curve):
-        pvdown = self.pv(assessment_date,curve,-0.00005)[0]
 
-        pvup = self.pv(assessment_date,curve,0.00005)[0]
+    def dv01(self, assessment_date, curve):
+        pvdown = self.pv(assessment_date, curve, -0.00005)[0]
+
+        pvup = self.pv(assessment_date, curve, 0.00005)[0]
         return pvup - pvdown
 
 
 class IRS(Asset):
     def __init__(self, code, ctype, initial_date, end_date, face_value, coupon_rate, assement_date, curve):
         super().__init__(code, ctype, initial_date, end_date, face_value, coupon_rate, assement_date, curve)
-
-
-
-
-
-
-
-
-
-
