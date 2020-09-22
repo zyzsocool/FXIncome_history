@@ -91,11 +91,12 @@ class Bond(Asset):
             ytm = None
         return ytm
 
-    def cashflow(self, assessment_date):
+    def cashflow(self, assessment_date=None):
         face_value = 1
         cash_flow = {}
+        cash_flow_all = {}
         if self.ctype == COUPON_TYPE.REGULAR:
-            cash_flow_all={}
+
             date = self.initial_date
             coupon = self.coupon_rate / self.frequency * face_value
             period = 12 / self.frequency
@@ -103,16 +104,18 @@ class Bond(Asset):
             while (date - self.end_date).days < 10:
                 cash_flow_all[date] = coupon
                 date += relativedelta(months=period)
-
             cash_flow_all[self.end_date] += face_value
             for i,j in cash_flow_all.items():
                 if (i- assessment_date).days >= 0:
                     cash_flow[i]=cash_flow_all[i]
-
         elif self.ctype == COUPON_TYPE.ZERO:
+            cash_flow_all[self.end_date] = face_value
             if (self.end_date-assessment_date)>=0:
                 cash_flow[self.end_date] = face_value
-        return cash_flow
+        if assessment_date:
+            return cash_flow
+        else:
+            return cash_flow_all
 
     def pv(self, assessment_date, curve, ytm_change=0):
         cash_flow = self.cashflow(assessment_date)
