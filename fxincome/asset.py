@@ -103,8 +103,8 @@ class Bond(Asset):
             while (date - self.end_date).days < 10:
                 cash_flow_all[date] = coupon
                 date += relativedelta(months=period)
-            date -= relativedelta(months=period)
-            cash_flow_all[date] += face_value
+
+            cash_flow_all[self.end_date] += face_value
             for i,j in cash_flow_all.items():
                 if (i- assessment_date).days >= 0:
                     cash_flow[i]=cash_flow_all[i]
