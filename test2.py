@@ -181,7 +181,7 @@ print('asset的函数测试')
 print('ytm:',bond1.ytm(assessment_date,curve))
 print('cashflow:',bond1.cashflow(assessment_date))
 print('pv:',bond1.pv(assessment_date,curve))
-print('cleanprice:',bond1.cleanprice_func(assessment_date,curve))
+print('cleanprice:', bond1.pv_cleanprice(assessment_date, curve))
 print('dv01:',bond1.dv01(assessment_date,curve))
 
 #2.2position的函数测试

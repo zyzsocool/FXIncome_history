@@ -92,7 +92,7 @@ class Portfolio:
                         cashflow_his_deal[hdp.date] = cash
                     # 3.1.1.2把债券派息兑付的流水写入历史现金流
                     for i, j in position_cashflow0.items():
-                        if (i - hdp.date).days <= 0:
+                        if i <= hdp.date:
                             if i in cashflow_his_deal.keys():
                                 cashflow_his_deal[i] += j
                             else:
@@ -102,7 +102,7 @@ class Portfolio:
                     position_cashflow0 = position.cashflow()#记录开始日的债券未来现金流
                     # 把债券派息兑付的流水写入历史现金流（不交易所以没有买卖流水现金流）
                     for i, j in position_cashflow0.items():
-                        if (i - hdp.date).days <= 0:
+                        if i <= hdp.date:
                             if i in cashflow_his_deal.keys():
                                 cashflow_his_deal[i] += j
                             else:
@@ -120,7 +120,7 @@ class Portfolio:
                 position_cashflow0 = position0.cashflow()#记录开始日的债券未来现金流
                 # 3.2.1把债券派息兑付的流水写入历史现金流（不交易所以没有买卖流水现金流）
                 for i, j in position_cashflow0.items():
-                    if (i - newdate).days <= 0:
+                    if i <= newdate:
                         if i in cashflow_his_notdeal.keys():
                             cashflow_his_notdeal[i] += j
                         else:
@@ -203,7 +203,7 @@ class Portfolio:
 
             lastdate = hdp.date
             for m in self.position_deal:
-                if m.face_value != 0 and (m.asset.end_date - lastdate).days > 0:
+                if m.face_value != 0 and m.asset.end_date > lastdate:
                     print(m.asset.code, m.face_value)
         # 5输出最终结果
         return resultall
@@ -400,7 +400,7 @@ class Portfolio:
                         position.change(newdate=newdate, newcurve=newcurve)
 
                         # 3.1.1.1.4计算原来资产的浮动盈亏、利息收入
-                        cleanprice_market1 = position.asset.cleanprice_func(position.assessment_date,position.curve)* position.face_value
+                        cleanprice_market1 = position.asset.pv_cleanprice(position.assessment_date, position.curve) * position.face_value
                         cleanprice_def1 = position.cleanprice_interestgain()[0]
                         floatinggain_deal += (cleanprice_market1 -cleanprice_def1)#计算浮动盈亏
 
@@ -415,7 +415,7 @@ class Portfolio:
                             cashflow_his_deal[hdp.date] = cash
                         # 3.1.1.1.6把债券派息兑付的流水写入历史现金流
                         for i, j in position_cashflow0.items():
-                            if (i - hdp.date).days <= 0:
+                            if i <= hdp.date:
                                 if i in cashflow_his_deal.keys():
                                     cashflow_his_deal[i] += j
                                 else:
@@ -440,13 +440,13 @@ class Portfolio:
                             position_pv1 = position_in.asset.pv(position_in.assessment_date,position_in.curve)[0]
                             cash = -position_pv1 * sellvol_in
 
-                            cleanprice_market0 = position_in.asset.cleanprice_func(position.assessment_date,position.curve)* position_in.face_value
+                            cleanprice_market0 = position_in.asset.pv_cleanprice(position.assessment_date, position.curve) * position_in.face_value
                             cleanprice_def0 = position_in.cleanprice_interestgain()[0]
                             interestgain_deal += position_in.cleanprice_interestgain()[1]
 
                             position_in.change(face_value_delta=sellvol_in)
 
-                            cleanprice_market1 = position_in.asset.cleanprice_func(position.assessment_date,position.curve)* position_in.face_value
+                            cleanprice_market1 = position_in.asset.pv_cleanprice(position.assessment_date, position.curve) * position_in.face_value
                             cleanprice_def1 = position_in.cleanprice_interestgain()[0]
                             interestgain_deal_div += position_in.cleanprice_interestgain()[1]#这里面有骚操作
                             #价差收入和浮动盈亏就是一样东西，所以要看卖了多少分配到两边
@@ -469,7 +469,7 @@ class Portfolio:
                                 cashflow_his_deal[hdp.date] = cash
                             #把债券派息兑付的流水写入历史现金流
                             for i, j in position_cashflow0.items():
-                                if (i - hdp.date).days <= 0:
+                                if i <= hdp.date:
                                     if i in cashflow_his_deal.keys():
                                         cashflow_his_deal[i] += j
                                     else:
@@ -479,14 +479,14 @@ class Portfolio:
                 elif position.asset.code not in dontlist:
                     position_cashflow0 = position.cashflow()
                     for i, j in position_cashflow0.items():
-                        if (i - hdp.date).days <= 0:
+                        if i <= hdp.date :
                             if i in cashflow_his_deal.keys():
                                 cashflow_his_deal[i] += j
                             else:
                                 cashflow_his_deal[i] = j
                     position.change(newdate=newdate, newcurve=newcurve)
 
-                    cleanprice_market1 = position.asset.cleanprice_func(position.assessment_date,position.curve)* position.face_value
+                    cleanprice_market1 = position.asset.pv_cleanprice(position.assessment_date, position.curve) * position.face_value
                     cleanprice_def1 = position.cleanprice_interestgain()[0]
                     floatinggain_deal += (cleanprice_market1 - cleanprice_def1)
 
@@ -506,7 +506,7 @@ class Portfolio:
                 # 3.2.1把债券派息兑付的流水写入历史现金流
                 position_cashflow0 = position0.cashflow()
                 for i, j in position_cashflow0.items():
-                    if (i - newdate).days <= 0:
+                    if i <= newdate:
                         if i in cashflow_his_notdeal.keys():
                             cashflow_his_notdeal[i] += j
                         else:
@@ -521,7 +521,7 @@ class Portfolio:
                         else:
                             cashflow_for_notdeal[i] = j
                 # 3.2.3计算浮动盈亏、利息收入
-                cleanprice_market1 = position0.asset.cleanprice_func(position0.assessment_date,position0.curve)*position0.face_value
+                cleanprice_market1 = position0.asset.pv_cleanprice(position0.assessment_date, position0.curve) * position0.face_value
                 cleanprice_def1 = position0.cleanprice_interestgain()[0]
                 interestgain_notdeal += position0.cleanprice_interestgain()[1]
 
@@ -620,7 +620,7 @@ class Portfolio:
 
             lastdate = hdp.date
             for m in self.position_deal:
-                if m.face_value != 0 and (m.asset.end_date - lastdate).days > 0:
+                if m.face_value != 0 and m.asset.end_date > lastdate:
                     print(m.asset.code, m.face_value)
         return resultall
 

@@ -1,6 +1,6 @@
 import datetime
 from dateutil.relativedelta import relativedelta
-
+from fxincome.const import COUPON_TYPE
 
 
 class Position():
@@ -29,7 +29,7 @@ class PositionBond(Position):
     def __init__(self, asset, face_value, assessment_date, curve,cleanprice=None):
         super().__init__(asset, face_value, assessment_date, curve)
 
-        self.cleanprice=self.asset.cleanprice_func(self.assessment_date,self.curve) * 100 if not cleanprice else cleanprice
+        self.cleanprice= self.asset.pv_cleanprice(self.assessment_date, self.curve) * 100 if not cleanprice else cleanprice
         self.realR = self.realdailyR()
         self.initial_assessment_date = assessment_date
     def cashflow(self):
@@ -46,32 +46,46 @@ class PositionBond(Position):
     def dv01(self):
         return self.asset.dv01(self.assessment_date,self.curve)*self.face_value
     def realdailyR(self):
-        if self.asset.ctype == '附息':
+        if self.asset.ctype == COUPON_TYPE.REGULAR:
             datelist = sorted(self.cashflow().keys())
-
             firstdate = datelist[0]
             period = 12 / self.asset.frequency
             lastdate = firstdate - relativedelta(months=period)
             datelist.insert(0, lastdate)
-
             realR_up = 0.2 / 365
             realR_down = 0
-
             while True:
                 date = self.initial_assessment_date
                 cleanprice = self.cleanprice
                 realR = (realR_up + realR_down) / 2
                 i = 1
                 yearday = (datelist[1] - datelist[0]).days
-                while (date - datelist[-1]).days < 0:
-                    if (date - datelist[i]).days >= 0:
+                while date < datelist[-1]:
+                    if date >= datelist[i]:
                         yearday = (datelist[i + 1] - datelist[i]).days
                         i += 1
-
                     cleanprice = cleanprice * (1 + realR) - self.asset.coupon_rate / yearday * 100 / self.asset.frequency
-
                     date += relativedelta(days=1)
+                if cleanprice - 100 > 0:
+                    realR_up = realR
+                else:
+                    realR_down = realR
 
+                if abs(cleanprice - 100) < 0.00000001:
+                    break
+        elif self.asset.ctype ==COUPON_TYPE.ZERO:
+            yearday = ((self.asset.initial_date + relativedelta(years=1)) - self.asset.initial_date).days
+            dayall = (self.asset.end_date - self.asset.initial_date).days
+            interest =(1 / (1 + yearday / (dayall * self.coupon_rate)))/ dayall
+            realR_up = 0.2 / 365
+            realR_down = 0
+            while True:
+                date = self.initial_assessment_date
+                cleanprice = self.cleanprice
+                realR = (realR_up + realR_down) / 2
+                while date<self.asset.end_date:
+                    cleanprice=cleanprice(1+realR)-interest
+                    date+=relativedelta(days=1)
                 if cleanprice - 100 > 0:
                     realR_up = realR
                 else:
@@ -79,13 +93,15 @@ class PositionBond(Position):
 
                 if abs(cleanprice - 100) < 0.000000001:
                     break
-
-
         return realR
+    def realdailyR2(self):
+        # todo 优化realdailyR的算法
+        pass
+
     def cleanprice_interestgain(self):  # 算的是当天日初折溢摊净价，也是昨日日终折溢摊净价
 
         realR = self.realR
-        if self.asset.ctype == '附息':
+        if self.asset.ctype == COUPON_TYPE.REGULAR:
 
             assessment_date = self.assessment_date
             date = self.initial_assessment_date
@@ -104,15 +120,15 @@ class PositionBond(Position):
             yearday = (datelist[1] - datelist[0]).days
             i = 1
             interestgain = 0
-            while (assessment_date - date).days > 0 and (self.asset.end_date - date).days > 0:
-                if (date - datelist[i]).days == 0:
+            while assessment_date > date and self.asset.end_date > date:
+                if date == datelist[i]:
                     yearday = (datelist[i + 1] - datelist[i]).days
                     i += 1
                 interestgain += cleanprice * realR
                 cleanprice = cleanprice * (1 + realR) - self.asset.coupon_rate / self.asset.frequency / yearday * 100
                 date += relativedelta(days=1)
 
-        if (assessment_date - self.asset.end_date).days > 0:
+        if assessment_date > self.asset.end_date:
             cleanprice = 0
 
         cleanprice = cleanprice * self.face_value / 100

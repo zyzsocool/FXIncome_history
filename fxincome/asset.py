@@ -19,10 +19,8 @@ class Asset:
         self.ctype = ctype
         self.initial_date = initial_date
         self.end_date = end_date
-        # self.face_value = face_value
         self.coupon_rate = coupon_rate
-        # self.assessment_date = assessment_date
-        # self.curve = curve
+
 
     def cashflow(self, assessment_date):
         pass
@@ -33,13 +31,7 @@ class Asset:
     def dv01(self, assessment_date, curve):
         pass
 
-    # def change(self, newdate=None, newcurve=None, face_value_delta=None):
-    #     if newdate:
-    #         self.assessment_date = newdate
-    #     if newcurve:
-    #         self.curve = newcurve
-    #     if face_value_delta:
-    #         self.face_value += face_value_delta
+
 
 
 class Bond(Asset):
@@ -106,11 +98,11 @@ class Bond(Asset):
                 date += relativedelta(months=period)
             cash_flow_all[self.end_date] += face_value
             for i,j in cash_flow_all.items():
-                if (i- assessment_date).days >= 0:
+                if i>= assessment_date:
                     cash_flow[i]=cash_flow_all[i]
         elif self.ctype == COUPON_TYPE.ZERO:
             cash_flow_all[self.end_date] = face_value
-            if (self.end_date-assessment_date)>=0:
+            if self.end_date>=assessment_date:
                 cash_flow[self.end_date] = face_value
         if assessment_date:
             return cash_flow
@@ -119,11 +111,11 @@ class Bond(Asset):
 
     def pv(self, assessment_date, curve, ytm_change=0):
         cash_flow = self.cashflow(assessment_date)
-        ytm = (self.ytm(assessment_date, curve) + ytm_change) / self.frequency
         cash_flow_deflated = {}
         pv = 0
         if self.ctype == COUPON_TYPE.REGULAR:
             if cash_flow:
+                ytm = (self.ytm(assessment_date, curve) + ytm_change) / self.frequency
                 firstdate = min(cash_flow.keys())
                 period = 12 / self.frequency
                 lastdate = firstdate - relativedelta(months=period)
@@ -144,15 +136,16 @@ class Bond(Asset):
                         days += 1
         elif self.ctype == COUPON_TYPE.ZERO:
             if cash_flow:
-                cashdate=list(cash_flow.keys())[0]
-                maxday =(cashdate-assessment_date).days
-                days=maxday/365
+                maxday =(self.end_date-assessment_date).days
+                yearday = ((self.initial_date + relativedelta(years=1)) - self.initial_date).days
+                days=maxday/yearday
+                ytm=self.ytm(assessment_date, curve) + ytm_change
                 if maxday>=365:
-                    value=list(cash_flow.values())[0] / (1 + ytm) ** days
+                    value=1 / (1 + ytm) ** days
 
                 else:
-                    value = list(cash_flow.values())[0] / (1 + ytm*days)
-                cash_flow_deflated[cashdate] = value
+                    value =1/ (1 + ytm*days)
+                cash_flow_deflated[self.end_date] = value
                 pv=value
 
 
@@ -160,14 +153,13 @@ class Bond(Asset):
 
         return [pv, cash_flow_deflated]
 
-    def cleanprice_func(self, assessment_date, curve):
+    def pv_cleanprice(self, assessment_date, curve):
 
         facevalue = 1
+        pv = self.pv(assessment_date, curve)[0]
         if self.ctype == COUPON_TYPE.REGULAR:
-            pv = self.pv(assessment_date, curve)[0]
             datelist = sorted(self.cashflow(assessment_date).keys())
             if datelist:
-
                 firstdate = datelist[0]
                 period = 12 / self.frequency
                 lastdate = firstdate - relativedelta(months=period)
@@ -177,6 +169,17 @@ class Bond(Asset):
                 cleanprice = pv - interest * facevalue
             else:
                 cleanprice = 0
+
+        elif self.ctype == COUPON_TYPE.ZERO:
+            if assessment_date<=self.end_date:
+                daycount = (assessment_date - self.initial_date).days
+                yearday = ((self.initial_date+relativedelta(years=1)) - self.initial_date).days
+                dayall=(self.end_date-self.initial_date).days
+
+                interest=daycount/dayall*(1/(1+yearday/(dayall*self.coupon_rate)))
+                cleanprice = pv - interest * facevalue
+            else:
+                cleanprice=0
         return cleanprice
 
     def dv01(self, assessment_date, curve):
