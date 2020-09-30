@@ -77,7 +77,7 @@ class PositionBond(Position):
                         yearday = (datelist[i + 1] - datelist[i]).days
                         i += 1
                     cleanprice = cleanprice * (
-                                1 + realR) - self.asset.coupon_rate / yearday * 100 / self.asset.frequency
+                            1 + realR) - self.asset.coupon_rate / yearday * 100 / self.asset.frequency
                     date += relativedelta(days=1)
                 if cleanprice - 100 > 0:
                     realR_up = realR
@@ -109,18 +109,40 @@ class PositionBond(Position):
         return realR
 
     def _cleanprice_for_realdailyR(self, r, callist):
-        Tlist = callist[0]  # 剩余的每个付息日距离到期日的天数
-        tlist = callist[1]  # 剩余的每个付息日对的应付息区间的天数
-        nlist = callist[2]  # 剩余的每个付息日对的应付息区间剩余天数
+        """
+
+        Args:
+            r: 实际日利率
+            callist: 一个list，三个元素（np.array）
+                  其中：  Tlist：剩余每个付息日距离到期日/结束日的天数
+                          tlist：剩余每个付息日对应的付息区间的天数，如按年付息的一般都是365或366
+                          nlist:剩余每个付息日对应剩余要付息的天数，如
+
+        Returns:
+            price：按实际日利率摊销到到期日/结束日的净价
+
+        """
+        Tlist = callist[0]
+        tlist = callist[1]
+        nlist = callist[2]
         coupon = self.asset.coupon_rate / self.asset.frequency * 100
         cleanprice = self.cleanprice
         interest = np.ones(Tlist.size) * coupon
+        # price（n）=price（n-1）*(1+r)^T-interest(n-1)推导出下式
         price_interest = sum((interest / tlist * ((1 + r) ** nlist - 1) / r) * (1 + r) ** Tlist)
         price_face = cleanprice * (1 + r) ** sum(nlist)
         price = price_face - price_interest
         return price
 
     def realdailyR(self):
+        """
+
+        Returns:
+            r：计算实际日利率
+            使用牛顿法计算
+            x（n）=x（n-1）-y（n-1）/y'(n-1)
+
+        """
         if self.asset.ctype == COUPON_TYPE.REGULAR:
             datelist = sorted(self.cashflow().keys())
             enddate = datelist[-1]
@@ -136,9 +158,9 @@ class PositionBond(Position):
                 n += 1
             nlist = copy.deepcopy(tlist)
             nlist[0] = nlistfirst
-            Tlist = np.array(Tlist)  # 剩余的每个付息日距离到期日的天数
-            tlist = np.array(tlist)  # 剩余的每个付息日对的应付息区间的天数
-            nlist = np.array(nlist)  # 剩余的每个付息日对的应付息区间剩余天数
+            Tlist = np.array(Tlist)
+            tlist = np.array(tlist)
+            nlist = np.array(nlist)
             callist = [Tlist, tlist, nlist]
             r = 0.01 / 365
             while True:
@@ -169,7 +191,6 @@ class PositionBond(Position):
         return r
 
     def _cleanprice_interestgain_history(self):  # (这个一般慢的函数已成为历史，用来留着纪念)
-
 
         realR = self.realR
         assessment_date = self.assessment_date
@@ -207,14 +228,21 @@ class PositionBond(Position):
 
         return [cleanprice, interestgain]
 
-    def cleanprice_interestgain(self): # 算的是当天日初折溢摊净价，也是昨日日终折溢摊净价
+    def cleanprice_interestgain(self):
+        """
+
+        Returns:
+            price：计算当天日初折溢摊净价，也是昨日日终折溢摊净价（到期日必定为100，超过到期日则统一为0）
+            interestgain：债券初始买入日到核算日的oci利息收入（超过到期日则按到期日算）
+
+        """
+        # 超过到期日则净价为0，利息收入按到期日算
         assessment_date = self.assessment_date
         pricechoice = 1
         if assessment_date > self.asset.end_date:
             assessment_date = self.asset.end_date
             pricechoice = 0
         if self.asset.ctype == COUPON_TYPE.REGULAR:
-
             Tlist = []
             tlist = []
             self.change(newdate=self.initial_assessment_date)
@@ -225,7 +253,6 @@ class PositionBond(Position):
             datelist.insert(0, lastdate)
             n = 0
             for date in datelist[1:]:
-
                 Tlist.append((assessment_date - date).days)
                 tlist.append((date - datelist[n]).days)
                 n += 1
@@ -233,7 +260,6 @@ class PositionBond(Position):
                     date -= relativedelta(months=12 / self.asset.frequency)
                     break
             Tlist[-1] = 0
-
             if len(Tlist) == 1:
                 nlist = [(assessment_date - self.initial_assessment_date).days]
             else:
@@ -248,16 +274,20 @@ class PositionBond(Position):
             coupon = self.asset.coupon_rate / self.asset.frequency
             coupon = np.ones(Tlist.size) * coupon
             couponsum = sum(coupon / tlist * nlist)
+            # price（n）=price（n-1）*(1+r)^T-interest(n-1)
+            # 推导出S_price（n-1）*r=price(n)-price(0)+S_coupon(n-1)
             interestgain = price - self.cleanprice / 100 + couponsum
 
         elif self.asset.ctype == COUPON_TYPE.ZERO:
             yearday = ((self.asset.initial_date + relativedelta(years=1)) - self.asset.initial_date).days
             dayall = (self.asset.end_date - self.asset.initial_date).days
             interest = (1 / (1 + yearday / (dayall * self.asset.coupon_rate))) / dayall * 100
-            daycal = (assessment_date-self.initial_assessment_date).days
+            daycal = (assessment_date - self.initial_assessment_date).days
             r = self.realR
             price = (self.cleanprice * (1 + r) ** daycal - interest * ((1 + r) ** daycal - 1) / r) / 100
-            interestgain = price - self.cleanprice / 100
+            # price（n）=price（n-1）*(1+r)^T-interest(n-1)
+            # 推导出S_price（n-1）*r=price(n)-price(0)+S_coupon(n-1)
+            interestgain = price - self.cleanprice / 100 +interest*daycal/100
         interestgain = interestgain * self.face_value
-        price = price * self.face_value*pricechoice
+        price = price * self.face_value * pricechoice
         return [price, interestgain]
