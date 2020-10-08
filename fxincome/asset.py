@@ -8,19 +8,16 @@ class Asset:
     """
     Args:
         code(str): ID of the asset
-        ctype(Enum): 付息或贴息
         initial_date(datetime):起息日
         end_date(datetime):到期日
         coupon_rate(float):票面利息
     """
 
-    def __init__(self, code, ctype, initial_date, end_date, coupon_rate):
+    def __init__(self, code, initial_date, end_date, coupon_rate):
         self.code = code
-        self.ctype = ctype
         self.initial_date = initial_date
         self.end_date = end_date
         self.coupon_rate = coupon_rate
-
 
     def cashflow(self, assessment_date):
         pass
@@ -32,21 +29,53 @@ class Asset:
         pass
 
 
-
-
 class Bond(Asset):
     """
     Args:
+        ctype(Enum): 付息或贴息
         frequency(int):付息频率，每年X次
     """
 
     def __init__(self, code, ctype, initial_date, end_date, coupon_rate, frequency):
-        super().__init__(code, ctype, initial_date, end_date, coupon_rate)
+        super().__init__(code, initial_date, end_date, coupon_rate)
+        self.ctype = ctype
         self.frequency = frequency
+        # __cashflow_all:字典，该债券对应的所有现金流
+        self.__cashflow_all = self.__cashflow()
+
+    def __cashflow(self):
+        face_value = 1
+        cash_flow_all = {}
+        if self.ctype == COUPON_TYPE.REGULAR:
+            date = self.initial_date
+            coupon = self.coupon_rate / self.frequency * face_value
+            period = int(12 / self.frequency)
+            date += relativedelta(months=period)
+            while (date - self.end_date).days < 10:
+                cash_flow_all[date] = coupon
+                date += relativedelta(months=period)
+            cash_flow_all[self.end_date] += face_value
+        elif self.ctype == COUPON_TYPE.ZERO:
+            cash_flow_all[self.end_date] = face_value
+        else:
+            raise NotImplementedError("Unknown COUPON_TYPE")
+
+        return cash_flow_all
+
+    def cashflow(self, assessment_date=None):
+        """
+        Args:
+            assessment_date(datetime):评估日,可为空
+        Returns:
+            评估日及之后的现金流，字典；如没有评估日则返回Bond对应的所有现金流
+        """
+        if assessment_date is None:
+            return self.__cashflow_all
+        cash_flow = {k: v for k, v in self.__cashflow_all.items() if k >= assessment_date}
+        return cash_flow
 
     def ytm(self, assessment_date, curve):
         """
-
         Args:
             assessment_date(datetime):评估日
             curve(dict):收益率曲线，Key关键期限包括 0，3M,6M, 9M, 1Y, 2Y, 3Y, 5Y, 10Y, 20Y, 30Y
@@ -83,33 +112,18 @@ class Bond(Asset):
             ytm = None
         return ytm
 
-    def cashflow(self, assessment_date=None):
-        face_value = 1
-        cash_flow = {}
-        cash_flow_all = {}
-        if self.ctype == COUPON_TYPE.REGULAR:
-
-            date = self.initial_date
-            coupon = self.coupon_rate / self.frequency * face_value
-            period = 12 / self.frequency
-            date += relativedelta(months=period)
-            while (date - self.end_date).days < 10:
-                cash_flow_all[date] = coupon
-                date += relativedelta(months=period)
-            cash_flow_all[self.end_date] += face_value
-            for i,j in cash_flow_all.items():
-                if i>= assessment_date:
-                    cash_flow[i]=cash_flow_all[i]
-        elif self.ctype == COUPON_TYPE.ZERO:
-            cash_flow_all[self.end_date] = face_value
-            if self.end_date>=assessment_date:
-                cash_flow[self.end_date] = face_value
-        if assessment_date:
-            return cash_flow
-        else:
-            return cash_flow_all
-
     def pv(self, assessment_date, curve, ytm_change=0):
+        """
+        Args:
+            assessment_date(datetime):评估日，可为空
+            curve(dict):收益率曲线，Key关键期限包括 0，3M,6M, 9M, 1Y, 2Y, 3Y, 5Y, 10Y, 20Y, 30Y
+                                  Value是对应的收益率， float
+            ytm_change(float):收益率曲线关键期限平行变化量，0.01代表1%
+        Returns:
+            tuple (pv, cash_flow_deflated)
+            pv(float) - 根据收益率曲线得出的评估日的现值（全价）
+            cash_flow_deflated(dict) - 每个现金流的折现值（全价），它们之和等于返回的第一个参数（现值）。
+        """
         cash_flow = self.cashflow(assessment_date)
         cash_flow_deflated = {}
         pv = 0
@@ -117,9 +131,9 @@ class Bond(Asset):
             if cash_flow:
                 ytm = (self.ytm(assessment_date, curve) + ytm_change) / self.frequency
                 firstdate = min(cash_flow.keys())
-                period = 12 / self.frequency
-                lastdate = firstdate - relativedelta(months=period)
-                days = (firstdate - assessment_date).days / (firstdate - lastdate).days
+                period = int(12 / self.frequency)
+                last_coupon_date = firstdate - relativedelta(months=period)
+                days = (firstdate - assessment_date).days / (firstdate - last_coupon_date).days
                 maxday = (max(cash_flow.keys()) - assessment_date).days
 
                 if maxday >= 365:
@@ -136,50 +150,57 @@ class Bond(Asset):
                         days += 1
         elif self.ctype == COUPON_TYPE.ZERO:
             if cash_flow:
-                maxday =(self.end_date-assessment_date).days
+                maxday = (self.end_date - assessment_date).days
                 yearday = ((self.initial_date + relativedelta(years=1)) - self.initial_date).days
-                days=maxday/yearday
-                ytm=self.ytm(assessment_date, curve) + ytm_change
-                if maxday>=365:
-                    value=1 / (1 + ytm) ** days
+                days = maxday / yearday
+                ytm = self.ytm(assessment_date, curve) + ytm_change
+                if maxday >= 365:
+                    value = 1 / (1 + ytm) ** days
 
                 else:
-                    value =1/ (1 + ytm*days)
+                    value = 1 / (1 + ytm * days)
                 cash_flow_deflated[self.end_date] = value
-                pv=value
-
-
-
-
-        return [pv, cash_flow_deflated]
+                pv = value
+        else:
+            raise NotImplementedError("Unknown COUPON_TYPE")
+        return pv, cash_flow_deflated
 
     def pv_cleanprice(self, assessment_date, curve):
-
+        """
+        Args:
+            assessment_date(datetime):评估日，可为空
+            curve(dict):收益率曲线，Key关键期限包括 0，3M,6M, 9M, 1Y, 2Y, 3Y, 5Y, 10Y, 20Y, 30Y
+                                  Value是对应的收益率， float
+        Returns:
+            cleanprice(float):根据收益率曲线得出的评估日的现值（净价）
+        """
         facevalue = 1
         pv = self.pv(assessment_date, curve)[0]
         if self.ctype == COUPON_TYPE.REGULAR:
             datelist = sorted(self.cashflow(assessment_date).keys())
             if datelist:
                 firstdate = datelist[0]
-                period = 12 / self.frequency
-                lastdate = firstdate - relativedelta(months=period)
-                dayall = (firstdate - lastdate).days
-                daycount = (assessment_date - lastdate).days
+                period = int(12 / self.frequency)
+                last_coupon_date = firstdate - relativedelta(months=period)
+                dayall = (firstdate - last_coupon_date).days
+                daycount = (assessment_date - last_coupon_date).days
                 interest = daycount / dayall * self.coupon_rate / self.frequency
                 cleanprice = pv - interest * facevalue
             else:
                 cleanprice = 0
 
         elif self.ctype == COUPON_TYPE.ZERO:
-            if assessment_date<=self.end_date:
+            if assessment_date <= self.end_date:
                 daycount = (assessment_date - self.initial_date).days
-                yearday = ((self.initial_date+relativedelta(years=1)) - self.initial_date).days
-                dayall=(self.end_date-self.initial_date).days
+                yearday = ((self.initial_date + relativedelta(years=1)) - self.initial_date).days
+                dayall = (self.end_date - self.initial_date).days
 
-                interest=daycount/dayall*(1/(1+yearday/(dayall*self.coupon_rate)))
+                interest = daycount / dayall * (1 / (1 + yearday / (dayall * self.coupon_rate)))
                 cleanprice = pv - interest * facevalue
             else:
-                cleanprice=0
+                cleanprice = 0
+        else:
+            raise NotImplementedError("Unknown COUPON_TYPE")
         return cleanprice
 
     def dv01(self, assessment_date, curve):
@@ -187,8 +208,3 @@ class Bond(Asset):
 
         pvup = self.pv(assessment_date, curve, 0.00005)[0]
         return pvup - pvdown
-
-
-class IRS(Asset):
-    def __init__(self, code, ctype, initial_date, end_date, face_value, coupon_rate, assement_date, curve):
-        super().__init__(code, ctype, initial_date, end_date, face_value, coupon_rate, assement_date, curve)

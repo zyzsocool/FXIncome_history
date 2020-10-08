@@ -6,20 +6,20 @@ import numpy as np
 
 
 class Position():
-    def __init__(self, asset, face_value, assessment_date, curve):
+    def __init__(self, asset, quantity, assessment_date, curve):
         self.asset = asset
-        self.face_value = face_value
+        self.quantity = quantity
         self.assessment_date = assessment_date
         self.initial_assessment_date = assessment_date
         self.curve = curve
 
-    def change(self, newdate=None, newcurve=None, face_value_delta=None):
+    def change(self, newdate=None, newcurve=None, quantity_delta=None):
         if newdate:
             self.assessment_date = newdate
         if newcurve:
             self.curve = newcurve
-        if face_value_delta:
-            self.face_value += face_value_delta
+        if quantity_delta:
+            self.quantity += quantity_delta
 
     def cashflow(self):
         pass
@@ -33,8 +33,8 @@ class Position():
 
 class PositionBond(Position):
 
-    def __init__(self, asset, face_value, assessment_date, curve, cleanprice=None):
-        super().__init__(asset, face_value, assessment_date, curve)
+    def __init__(self, asset, quantity, assessment_date, curve, cleanprice=None):
+        super().__init__(asset, quantity, assessment_date, curve)
 
         self.cleanprice = self.asset.pv_cleanprice(self.assessment_date,
                                                    self.curve) * 100 if not cleanprice else cleanprice
@@ -44,69 +44,69 @@ class PositionBond(Position):
     def cashflow(self):
         cashflow = self.asset.cashflow(self.assessment_date)
         for date, flow in cashflow.items():
-            cashflow[date] = flow * self.face_value
+            cashflow[date] = flow * self.quantity
         return cashflow
 
     def pv(self, ytm_change=0):
-        [pv, cash_flow_deflated] = self.asset.pv(self.assessment_date, self.curve, ytm_change)
-        pv = pv * self.face_value
+        pv, cash_flow_deflated = self.asset.pv(self.assessment_date, self.curve, ytm_change)
+        pv = pv * self.quantity
         for date, flow in cash_flow_deflated.items():
-            cash_flow_deflated[date] = flow * self.face_value
-        return [pv, cash_flow_deflated]
+            cash_flow_deflated[date] = flow * self.quantity
+        return pv, cash_flow_deflated
 
     def dv01(self):
-        return self.asset.dv01(self.assessment_date, self.curve) * self.face_value
+        return self.asset.dv01(self.assessment_date, self.curve) * self.quantity
 
-    def _realdailyR_history(self):  # (这个超级慢的函数已成为历史，用来留着纪念)
-        if self.asset.ctype == COUPON_TYPE.REGULAR:
-            datelist = sorted(self.cashflow().keys())
-            firstdate = datelist[0]
-            period = 12 / self.asset.frequency
-            lastdate = firstdate - relativedelta(months=period)
-            datelist.insert(0, lastdate)
-            realR_up = 0.2 / 365
-            realR_down = 0
-            while True:
-                date = self.initial_assessment_date
-                cleanprice = self.cleanprice
-                realR = (realR_up + realR_down) / 2
-                i = 1
-                yearday = (datelist[i] - datelist[i - 1]).days
-                while date < datelist[-1]:
-                    if date >= datelist[i]:
-                        yearday = (datelist[i + 1] - datelist[i]).days
-                        i += 1
-                    cleanprice = cleanprice * (
-                            1 + realR) - self.asset.coupon_rate / yearday * 100 / self.asset.frequency
-                    date += relativedelta(days=1)
-                if cleanprice - 100 > 0:
-                    realR_up = realR
-                else:
-                    realR_down = realR
-
-                if abs(cleanprice - 100) < 0.00000001:
-                    break
-        elif self.asset.ctype == COUPON_TYPE.ZERO:
-            yearday = ((self.asset.initial_date + relativedelta(years=1)) - self.asset.initial_date).days
-            dayall = (self.asset.end_date - self.asset.initial_date).days
-            interest = (1 / (1 + yearday / (dayall * self.asset.coupon_rate))) / dayall
-            realR_up = 0.2 / 365
-            realR_down = 0
-            while True:
-                date = self.initial_assessment_date
-                cleanprice = self.cleanprice
-                realR = (realR_up + realR_down) / 2
-                while date < self.asset.end_date:
-                    cleanprice = cleanprice * (1 + realR) - interest
-                    date += relativedelta(days=1)
-                if cleanprice - 100 > 0:
-                    realR_up = realR
-                else:
-                    realR_down = realR
-
-                if abs(cleanprice - 100) < 0.000000001:
-                    break
-        return realR
+    # def _realdailyR_history(self):  # (这个超级慢的函数已成为历史，用来留着纪念)
+    #     if self.asset.ctype == COUPON_TYPE.REGULAR:
+    #         datelist = sorted(self.cashflow().keys())
+    #         firstdate = datelist[0]
+    #         period = 12 / self.asset.frequency
+    #         lastdate = firstdate - relativedelta(months=period)
+    #         datelist.insert(0, lastdate)
+    #         realR_up = 0.2 / 365
+    #         realR_down = 0
+    #         while True:
+    #             date = self.initial_assessment_date
+    #             cleanprice = self.cleanprice
+    #             realR = (realR_up + realR_down) / 2
+    #             i = 1
+    #             yearday = (datelist[i] - datelist[i - 1]).days
+    #             while date < datelist[-1]:
+    #                 if date >= datelist[i]:
+    #                     yearday = (datelist[i + 1] - datelist[i]).days
+    #                     i += 1
+    #                 cleanprice = cleanprice * (
+    #                         1 + realR) - self.asset.coupon_rate / yearday * 100 / self.asset.frequency
+    #                 date += relativedelta(days=1)
+    #             if cleanprice - 100 > 0:
+    #                 realR_up = realR
+    #             else:
+    #                 realR_down = realR
+    #
+    #             if abs(cleanprice - 100) < 0.00000001:
+    #                 break
+    #     elif self.asset.ctype == COUPON_TYPE.ZERO:
+    #         yearday = ((self.asset.initial_date + relativedelta(years=1)) - self.asset.initial_date).days
+    #         dayall = (self.asset.end_date - self.asset.initial_date).days
+    #         interest = (1 / (1 + yearday / (dayall * self.asset.coupon_rate))) / dayall
+    #         realR_up = 0.2 / 365
+    #         realR_down = 0
+    #         while True:
+    #             date = self.initial_assessment_date
+    #             cleanprice = self.cleanprice
+    #             realR = (realR_up + realR_down) / 2
+    #             while date < self.asset.end_date:
+    #                 cleanprice = cleanprice * (1 + realR) - interest
+    #                 date += relativedelta(days=1)
+    #             if cleanprice - 100 > 0:
+    #                 realR_up = realR
+    #             else:
+    #                 realR_down = realR
+    #
+    #             if abs(cleanprice - 100) < 0.000000001:
+    #                 break
+    #     return realR
 
     def _cleanprice_for_realdailyR(self, r, callist):
         """
@@ -187,54 +187,53 @@ class PositionBond(Position):
                 r = r - price / price_div
                 if abs(price) < 0.000000001:
                     break
-
+        else:
+            raise NotImplementedError("Unknown COUPON_TYPE")
         return r
 
-    def _cleanprice_interestgain_history(self):  # (这个一般慢的函数已成为历史，用来留着纪念)
-
-        realR = self.realR
-        assessment_date = self.assessment_date
-        if self.asset.ctype == COUPON_TYPE.REGULAR:
-
-            date = self.initial_assessment_date
-            self.change(newdate=date)
-
-            datelist = sorted(self.cashflow().keys())
-            self.change(newdate=assessment_date)
-            firstdate = datelist[0]
-            period = 12 / self.asset.frequency
-            lastdate = firstdate - relativedelta(months=period)
-            datelist.insert(0, lastdate)
-
-            assessment_date = self.assessment_date
-            date = self.initial_assessment_date
-            cleanprice = self.cleanprice
-            yearday = (datelist[1] - datelist[0]).days
-            i = 1
-            interestgain = 0
-            while assessment_date > date and self.asset.end_date > date:
-                if date == datelist[i]:
-                    yearday = (datelist[i + 1] - datelist[i]).days
-                    i += 1
-                interestgain += cleanprice * realR
-                cleanprice = cleanprice * (1 + realR) - self.asset.coupon_rate / self.asset.frequency / yearday * 100
-                date += relativedelta(days=1)
-
-        if assessment_date > self.asset.end_date:
-            cleanprice = 0
-
-        cleanprice = cleanprice * self.face_value / 100
-        interestgain = interestgain * self.face_value / 100
-
-        return [cleanprice, interestgain]
+    # def _cleanprice_interestgain_history(self):  # (这个一般慢的函数已成为历史，用来留着纪念)
+    #
+    #     realR = self.realR
+    #     assessment_date = self.assessment_date
+    #     if self.asset.ctype == COUPON_TYPE.REGULAR:
+    #
+    #         date = self.initial_assessment_date
+    #         self.change(newdate=date)
+    #
+    #         datelist = sorted(self.cashflow().keys())
+    #         self.change(newdate=assessment_date)
+    #         firstdate = datelist[0]
+    #         period = 12 / self.asset.frequency
+    #         lastdate = firstdate - relativedelta(months=period)
+    #         datelist.insert(0, lastdate)
+    #
+    #         assessment_date = self.assessment_date
+    #         date = self.initial_assessment_date
+    #         cleanprice = self.cleanprice
+    #         yearday = (datelist[1] - datelist[0]).days
+    #         i = 1
+    #         interestgain = 0
+    #         while assessment_date > date and self.asset.end_date > date:
+    #             if date == datelist[i]:
+    #                 yearday = (datelist[i + 1] - datelist[i]).days
+    #                 i += 1
+    #             interestgain += cleanprice * realR
+    #             cleanprice = cleanprice * (1 + realR) - self.asset.coupon_rate / self.asset.frequency / yearday * 100
+    #             date += relativedelta(days=1)
+    #
+    #     if assessment_date > self.asset.end_date:
+    #         cleanprice = 0
+    #
+    #     cleanprice = cleanprice * self.quantity / 100
+    #     interestgain = interestgain * self.quantity / 100
+    #
+    #     return [cleanprice, interestgain]
 
     def cleanprice_interestgain(self):
         """
-
-        Returns:
-            price：计算当天日初折溢摊净价，也是昨日日终折溢摊净价（到期日必定为100，超过到期日则统一为0）
-            interestgain：债券初始买入日到核算日的oci利息收入（超过到期日则按到期日算）
-
+        Returns: tuple(price, interestgain)
+            price - 计算当天日初折溢摊净价，也是昨日日终折溢摊净价（到期日必定为100，超过到期日则统一为0）
+            interestgain - 债券初始买入日到核算日的oci利息收入（超过到期日则按到期日算）
         """
         # 超过到期日则净价为0，利息收入按到期日算
         assessment_date = self.assessment_date
@@ -287,7 +286,10 @@ class PositionBond(Position):
             price = (self.cleanprice * (1 + r) ** daycal - interest * ((1 + r) ** daycal - 1) / r) / 100
             # price（n）=price（n-1）*(1+r)^T-interest(n-1)
             # 推导出S_price（n-1）*r=price(n)-price(0)+S_coupon(n-1)
-            interestgain = price - self.cleanprice / 100 +interest*daycal/100
-        interestgain = interestgain * self.face_value
-        price = price * self.face_value * pricechoice
-        return [price, interestgain]
+            interestgain = price - self.cleanprice / 100 + interest * daycal / 100
+        else:
+            raise NotImplementedError("Unknown COUPON_TYPE")
+
+        interestgain = interestgain * self.quantity
+        price = price * self.quantity * pricechoice
+        return price, interestgain
