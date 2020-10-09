@@ -19,7 +19,7 @@ class TestBond:
         return bond
 
     def test_ytm(self, my_bond):
-        bond=my_bond
+        bond = my_bond
         assess_date = datetime(2020, 1, 10)
         curve = {
             '0': 0.015,
@@ -34,7 +34,7 @@ class TestBond:
             '10Y': 0.015,
             '20Y': 0.015,
             '30Y': 0.015}
-        assert bond.ytm(assess_date,curve)==0.015
+        assert bond.ytm(assess_date,curve) == 0.015
 
     def test_cashflow(self, my_bond):
         bond = my_bond

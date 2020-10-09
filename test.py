@@ -12,7 +12,7 @@ myprofilo=fxincome.Portfolio(positionlist, hdplist)
 #myprofilo.bsforcast_tpl()
 #profile.run('myprofilo.bsforcast_tpl()')
 # 2.2tpl蒙特卡洛算法（画图，不输入数字就默认模拟1000次）
-myprofilo.bsforcast_tpl_plot(10000)
+myprofilo.bsforcast_tpl_plot(500)
 #profile.run('myprofilo.bsforcast_tpl_plot(100)')
 # 2.3oci算法
 #myprofilo.bsforcast_oci()

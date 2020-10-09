@@ -6,7 +6,7 @@ import fxincome
 # end_date1=datetime.datetime(2029,5,21)
 # coupon_rate1=3.65/100
 # frequency1=1
-# face_value=100
+# quantity=100
 # assessment_date=datetime.datetime(2028,5,20)
 # curve = {
 #     '0': 0.009068,
@@ -70,7 +70,7 @@ print(position1.cleanprice_interestgain())
 # bond1=fxincome.Bond(code1, ctype1, initial_date1, end_date1, coupon_rate1, frequency1)
 #
 #
-# face_value=100
+# quantity=100
 # assessment_date=datetime.datetime(2017,6,20)
 # curve = {
 #     '0': 0.009068,
@@ -86,7 +86,7 @@ print(position1.cleanprice_interestgain())
 #     '20Y': 0.032858,
 #     '30Y': 0.034564}
 #
-# position1=fxincome.PositionBond(bond1, face_value, assessment_date, curve)
+# position1=fxincome.PositionBond(bond1, quantity, assessment_date, curve)
 # position1.cleanprice=99.9
 # print(position1.cashflow())
 # print(position1.realdailyR())
